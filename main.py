@@ -1,20 +1,58 @@
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from utils.connection_db import init_db
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from typing import List
 
+import crud, models, schemas
+from database import engine, SessionLocal
+from sqlalchemy.orm import Session
+from fastapi import Depends
 
-@asynccontextmanager
-async def lifespan(app:FastAPI):
-    await init_db()
-    yield
-app = FastAPI(lifespan=lifespan)
+models.Base.metadata.create_all(bind=engine)
 
+app = FastAPI(title="API de Usuarios")
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
+@app.post("/usuarios/", response_model=schemas.UsuarioOut)
+def crear_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_db)):
+    return crud.crear_usuario(db, usuario)
+
+@app.get("/usuarios/", response_model=List[schemas.UsuarioOut])
+def listar_usuarios(db: Session = Depends(get_db)):
+    return crud.obtener_usuarios(db)
+
+@app.get("/usuarios/activos_premium", response_model=List[schemas.UsuarioOut])
+def listar_activos_premium(db: Session = Depends(get_db)):
+    return crud.obtener_usuarios_activos_premium(db)
+
+@app.get("/usuarios/activos", response_model=List[schemas.UsuarioOut])
+def listar_activos(db: Session = Depends(get_db)):
+    return crud.obtener_usuarios_por_estado(db, "Activo")
+
+@app.get("/usuarios/{usuario_id}", response_model=schemas.UsuarioOut)
+def obtener_usuario(usuario_id: int, db: Session = Depends(get_db)):
+    return crud.obtener_usuario(db, usuario_id)
+
+@app.patch("/usuarios/{usuario_id}/estado", response_model=schemas.UsuarioOut)
+def actualizar_estado(usuario_id: int, estado: str, db: Session = Depends(get_db)):
+    return crud.actualizar_estado(db, usuario_id, estado)
+
+@app.patch("/usuarios/{usuario_id}/premium", response_model=schemas.UsuarioOut)
+def hacer_premium(usuario_id: int, db: Session = Depends(get_db)):
+    return crud.hacer_premium(db, usuario_id)
+
