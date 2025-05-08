@@ -56,3 +56,32 @@ def actualizar_estado(usuario_id: int, estado: str, db: Session = Depends(get_db
 def hacer_premium(usuario_id: int, db: Session = Depends(get_db)):
     return crud.hacer_premium(db, usuario_id)
 
+@app.post("/tareas/", response_model=schemas.TareaOut)
+def crear_tarea(tarea: schemas.TareaCreate, usuario_id: int, db: Session = Depends(get_db)):
+    return crud.crear_tarea(db, tarea, usuario_id)
+
+@app.get("/tareas/", response_model=List[schemas.TareaOut])
+def listar_tareas(db: Session = Depends(get_db)):
+    return crud.obtener_tareas(db)
+
+@app.get("/tareas/{tarea_id}", response_model=schemas.TareaOut)
+def obtener_tarea(tarea_id: int, db: Session = Depends(get_db)):
+    tarea = crud.obtener_tarea(db, tarea_id)
+    if tarea is None:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    return tarea
+
+@app.patch("/tareas/{tarea_id}/estado", response_model=schemas.TareaOut)
+def actualizar_estado_tarea(tarea_id: int, estado: str, db: Session = Depends(get_db)):
+    tarea = crud.actualizar_estado_tarea(db, tarea_id, estado)
+    if tarea is None:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    return tarea
+
+@app.get("/tareas/estado/{estado}", response_model=List[schemas.TareaOut])
+def listar_tareas_por_estado(estado: str, db: Session = Depends(get_db)):
+    return crud.obtener_tareas_por_estado(db, estado)
+
+@app.get("/tareas/usuario/{usuario_id}", response_model=List[schemas.TareaOut])
+def listar_tareas_por_usuario(usuario_id: int, db: Session = Depends(get_db)):
+    return crud.obtener_tareas_por_usuario(db, usuario_id)

@@ -35,3 +35,34 @@ def obtener_usuarios_por_estado(db: Session, estado: str):
 
 def obtener_usuarios_activos_premium(db: Session):
     return db.query(models.Usuario).filter(models.Usuario.estado == "Activo", models.Usuario.premium == True).all()
+
+def crear_tarea(db: Session, tarea: schemas.TareaCreate, usuario_id: int):
+    db_tarea = models.Tarea(
+        descripcion=tarea.descripcion,
+        estado=tarea.estado,
+        usuario_id=usuario_id
+    )
+    db.add(db_tarea)
+    db.commit()
+    db.refresh(db_tarea)
+    return db_tarea
+
+def obtener_tareas(db: Session):
+    return db.query(models.Tarea).all()
+
+def obtener_tarea(db: Session, tarea_id: int):
+    return db.query(models.Tarea).filter(models.Tarea.id == tarea_id).first()
+
+def actualizar_estado_tarea(db: Session, tarea_id: int, estado: str):
+    tarea = obtener_tarea(db, tarea_id)
+    if tarea:
+        tarea.estado = estado
+        db.commit()
+        db.refresh(tarea)
+    return tarea
+
+def obtener_tareas_por_estado(db: Session, estado: str):
+    return db.query(models.Tarea).filter(models.Tarea.estado == estado).all()
+
+def obtener_tareas_por_usuario(db: Session, usuario_id: int):
+    return db.query(models.Tarea).filter(models.Tarea.usuario_id == usuario_id).all()
